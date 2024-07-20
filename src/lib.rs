@@ -10,7 +10,3 @@
 //
 // You should have received a copy of the GNU General Public License along with Jukie. If not, see
 // <https://www.gnu.org/licenses/>.
-
-fn main() {
-    println!("Hello, world!");
-}

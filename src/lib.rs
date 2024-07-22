@@ -10,3 +10,7 @@
 //
 // You should have received a copy of the GNU General Public License along with Jukie. If not, see
 // <https://www.gnu.org/licenses/>.
+
+pub mod composers;
+pub mod flac;
+pub mod local;

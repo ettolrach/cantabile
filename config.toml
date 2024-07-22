@@ -1,0 +1,15 @@
+[spotify]
+access_token = ""
+client_id = ""
+
+[local]
+paths = [ "/mnt/Archive_HDD/MusicRAW/" ]
+ignore = [
+    "/mnt/Archive_HDD/MusicRAW_tagged/Bach/Bach Sax I/",
+    "/mnt/Archive_HDD/MusicRAW_tagged/Chopin/Chopin Piano Sonatas Moog/",
+    "/mnt/Archive_HDD/MusicRAW_tagged/Hänsel & Gretel/",
+    "/mnt/Archive_HDD/MusicRAW_tagged/John Williams/",
+    "/mnt/Archive_HDD/MusicRAW_tagged/Lachner/",
+    "/mnt/Archive_HDD/MusicRAW_tagged/Schubert/Schöne Müllerin/",
+    "/mnt/Archive_HDD/MusicRAW_tagged/Tchaikovsky/Nutcracker_and_Souvenir_de_Florence/",
+]

@@ -28,7 +28,7 @@ pub const FAMOUS_COMPOSERS: [(&str, &str); 13] = [
     ("Tchaikovsky", "Pyotr Ilyich Tchaikovsky"),
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Composer {
     pub short_name: String,
     pub full_name: String,

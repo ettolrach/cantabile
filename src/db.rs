@@ -11,7 +11,20 @@
 // You should have received a copy of the GNU General Public License along with Jukie. If not, see
 // <https://www.gnu.org/licenses/>.
 
-pub mod composers;
-pub mod db;
-pub mod flac;
-pub mod local;
+// === DESIGN ===
+
+// == Albums ==
+// path: text, primary key,
+// name: text,
+// artists: text,
+// cover: blob,
+// year: integer,
+
+// == Track ==
+// path: text, primary key,
+// album_path: text, foreign key (Albums::path),
+// title: text,
+// artists: text,
+// genre: text,
+// year: integer,
+// position: integer,

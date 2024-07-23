@@ -14,11 +14,10 @@
 use crate::composers::{Composer, FAMOUS_COMPOSERS};
 
 use std::{
-    io,
-    path::{Path, PathBuf},
+    collections::HashSet, convert::Infallible, io, path::{Path, PathBuf}, str::FromStr
 };
 
-use audiotags::Tag;
+use audiotags::{Album, MimeType, Picture, Tag};
 
 fn parse_album_artist(s: &str) -> (Vec<Composer>, Vec<String>) {
     let mut composers: Vec<Composer> = Vec::new();
@@ -35,22 +34,75 @@ fn parse_album_artist(s: &str) -> (Vec<Composer>, Vec<String>) {
     (composers, artists)
 }
 
-enum Artist {
-    ClassicalComposer(Composer),
-    Other(String),
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Artists {
+    composers: HashSet<Composer>,
+    others: HashSet<String>,
 }
 
-impl From<Composer> for Artist {
-    fn from(value: Composer) -> Self {
-        Self::ClassicalComposer(value)
+impl Artists {
+    // Constructors.
+
+    /// Creates a new blank Artists struct, ready to be mutated with new values.
+    pub fn new() -> Self {
+        Artists { composers: HashSet::new(), others: HashSet::new() }
+    }
+
+    /// Takes an iterator of artist strings and parses each to create a new [`Artists`] struct.
+    fn parse_strings<'a>(strings: impl IntoIterator<Item = &'a str>) -> Self {
+        let mut to_return: Self = Self::new();
+        for s in strings {
+            for artist in s.replace("/", ";").replace("feat.", ";").split(';').map(str::trim) {
+                to_return.add_string(artist);
+            }
+
+        }
+        to_return
+    }
+
+    pub fn add_composer(&mut self, composer: Composer) {
+        self.composers.insert(composer);
+    }
+
+    /// Adds a non-classical composer.
+    pub fn add_other(&mut self, other: &str) {
+        self.others.insert(other.to_owned());
+    }
+
+    /// Adds the string to the artists. This differs from [`Artist::add_other`] by checking if the
+    /// input is a classical composer and adding it to the appropriate HashSet.
+    pub fn add_string(&mut self, s: &str) {
+        if let Some(c) = Composer::from_famous(s) {
+            self.composers.insert(c);
+        } else {
+            self.others.insert(s.to_owned());
+        }
     }
 }
 
-/// The position of a track on a CD. So, the 4th track on a 13 track CD is `[4, 13]`.
-type CdPosition = [u8; 2];
+impl Default for Artists {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Cover {
+    pub data: Vec<u8>,
+    pub mime_type: MimeType,
+}
+
+impl From<Picture<'_>> for Cover {
+    fn from(value: Picture) -> Self {
+        Self {
+            data: value.data.to_owned(),
+            mime_type: value.mime_type,
+        }
+    }
+}
 
 #[derive(thiserror::Error, Debug)]
-enum Error {
+pub enum Error {
     /// The directory specified in the config.toml file couldn't be found. This could be because
     /// the path is incorrect, or the program is missing read permissions.
     #[error("The directory couldn't be found! Is the supplied path in the config.toml correct?")]
@@ -58,66 +110,82 @@ enum Error {
     /// Some [`io::Error`] occurred.
     #[error("{0}")]
     DirectoryReadError(#[from] io::Error),
-    /// If a track doesn't have a title, artist, album, and genre, no [`Track`] can be constructed.
-    #[error("Missing title, artist, album, or genre!")]
-    NotEnoughInfo,
+    /// The year metadata is not a [`u16`] number (years for audio files should between 1800 and
+    /// CURERNT_YEAR, and we're not quite in the year 65536 yet).
+    #[error("Year is invalid! Got the number {0}.")]
+    InvalidYear(i32),
+    /// A track didn't have an album.
+    #[error("Missing album!")]
+    MissingAlbum,
+    /// A track didn't have an artist.
+    #[error("Missing artist!")]
+    MissingArtist,
+    /// A track didn't have a genre.
+    #[error("Missing genre!")]
+    MissingGenre,
+    /// A track didn't have a position (a.k.a. track number).
+    #[error("Missing position!")]
+    MissingPosition,
+    /// A track didn't have a title.
+    #[error("Missing title!")]
+    MissingTitle,
 }
 
-/// This is a FLAC struct.
-///
-/// This will assume that paths are valid.
-#[derive(Default)]
-pub struct Track {
+/// A Track which represents a music file with metadata and album information.
+/// 
+/// This struct should only be used in the process of creating a database. This will assume that
+/// paths are valid.
+/// 
+/// If a track doesn't have a title, artist, album, and genre, no [`Track`] can be constructed.
+#[derive(Clone)]
+pub struct TrackMaxi {
     path: PathBuf,
     title: String,
-    artists: Vec<Artist>,
-    performer: Vec<String>,
-    album: String,
+    artists: Artists,
+    album_name: String,
+    album_cover: Option<Cover>,
+    album_artists: Artists,
     genre: String,
     year: Option<u16>,
-    position: CdPosition,
+    position: u16,
 }
 
-impl TryFrom<PathBuf> for Track {
+impl TryFrom<PathBuf> for TrackMaxi {
     type Error = self::Error;
     fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
-        let mut tag = Tag::new()
-            .read_from_path(value)
+        let tag = Tag::new()
+            .read_from_path(&value)
             .expect("File metadata invalid.");
 
-        let mut artists: Vec<Artist> = Vec::new();
+        let artists = Artists::parse_strings([
+            tag.artist().ok_or(Self::Error::MissingArtist)?,
+            tag.album_artist().ok_or(Self::Error::MissingArtist)?,
+        ]);
 
-        let artist_string: String = tag.artist().ok_or(Self::Error::NotEnoughInfo)?.to_owned();
-        let mut composer: Option<Composer> = Composer::from_famous(&artist_string);
-        let mut performer: Vec<String> = Vec::new();
+        let album_artists = Artists::parse_strings([
+            tag.album_artist()
+                .ok_or(Self::Error::MissingArtist)?
+        ]);
 
-        if let Some(c) = composer {
-            artists.push(Artist::ClassicalComposer(c));
-            if let Some(album_artist_string) = tag.album_artist() {
-                let (composer_vec, performer_vec) = parse_album_artist(album_artist_string);
-                performer.append(&mut performer_vec);
-                let mut composer_vec: Vec<Artist> = composer_vec
-                    .into_iter()
-                    .filter(|s| s == &c)
-                    .map(From::from)
-                    .collect();
-                artists.append(&mut composer_vec);
-            }
+        let year_i32: Option<i32> = tag.year();
+        let year: Option<u16> = if let Some(x) = year_i32 {
+            Some(u16::try_from(x).map_err(|_| Self::Error::InvalidYear(x))?)
         } else {
-            artists.
-        }
+            None
+        };
 
-        if let Some(s) = tag.album_artist() {
+        let album = tag.album().ok_or(Self::Error::MissingAlbum)?;
 
-        }
-        Ok(Track {
+        Ok(TrackMaxi {
             path: value,
-            title: tag.title().unwrap_or("").to_string(),
-            artist: tag.artist().unwrap_or("").to_string(),
-            album: tag.album().unwrap_or("").to_string(),
+            title: tag.title().ok_or(Self::Error::MissingTitle)?.to_owned(),
+            artists,
+            album_name: album.title.to_string(),
+            album_cover: album.cover.map(Cover::from),
+            album_artists,
             genre: tag.genre().unwrap_or("").to_string(),
-            year: tag.year().unwrap_or("").to_string(),
-            position: tag.track_number().unwrap_or("").to_string(),
+            year,
+            position: tag.track_number().ok_or(Self::Error::MissingPosition)?,
         })
     }
 }

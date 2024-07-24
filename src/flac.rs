@@ -44,6 +44,7 @@ impl Artists {
     // Constructors.
 
     /// Creates a new blank Artists struct, ready to be mutated with new values.
+    #[must_use]
     pub fn new() -> Self {
         Artists { composers: HashSet::new(), others: HashSet::new() }
     }
@@ -52,7 +53,7 @@ impl Artists {
     fn parse_strings<'a>(strings: impl IntoIterator<Item = &'a str>) -> Self {
         let mut to_return: Self = Self::new();
         for s in strings {
-            for artist in s.replace("/", ";").replace("feat.", ";").split(';').map(str::trim) {
+            for artist in s.replace('/', ";").replace("feat.", ";").split(';').map(str::trim) {
                 to_return.add_string(artist);
             }
 
@@ -70,7 +71,7 @@ impl Artists {
     }
 
     /// Adds the string to the artists. This differs from [`Artist::add_other`] by checking if the
-    /// input is a classical composer and adding it to the appropriate HashSet.
+    /// input is a classical composer and adding it to the appropriate `HashSet`.
     pub fn add_string(&mut self, s: &str) {
         if let Some(c) = Composer::from_famous(s) {
             self.composers.insert(c);
@@ -111,7 +112,7 @@ pub enum Error {
     #[error("{0}")]
     DirectoryReadError(#[from] io::Error),
     /// The year metadata is not a [`u16`] number (years for audio files should between 1800 and
-    /// CURERNT_YEAR, and we're not quite in the year 65536 yet).
+    /// `CURRENT_YEAR`, and we're not quite in the year 65536 yet).
     #[error("Year is invalid! Got the number {0}.")]
     InvalidYear(i32),
     /// A track didn't have an album.

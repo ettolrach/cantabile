@@ -12,20 +12,30 @@
 // <https://www.gnu.org/licenses/>.
 
 /// Tuple of full name, short name.
-pub const FAMOUS_COMPOSERS: [(&str, &str); 13] = [
+pub const FAMOUS_COMPOSERS: [(&str, &str); 23] = [
     ("Bach", "Johann Sebastian Bach"),
     ("Beethoven", "Ludwig van Beethoven"),
     ("Bizet", "Georges Bizet"),
+    ("Borodin", "Alexander Borodin"),
     ("Chopin", "Frédéric Chopin"),
     ("Dvořák", "Antonín Dvořák"),
+    ("Elgar", "Edward Elgar"),
     ("Grieg", "Edvard Grieg"),
+    ("Mendelssohn", "Felix Mendelssohn"),
     ("Mozart", "Wolfgang Amadeus Mozart"),
+    ("Rachmaninoff", "Sergei Rachmaninoff"),
+    ("Rossini", "Gioachino Rossini"),
     ("Schubert", "Franz Schubert"),
+    ("Clara Schumann", "Clara Schumann"),
     ("Schumann", "Robert Schumann"),
+    ("Shchedrin", "Rodrigo Shchedrin"),
+    ("Shostakovich", "Dmitri Shostakovich"),
     ("Strauss I", "Johann Strauss I"),
     ("Strauss II", "Johann Strauss II"),
     ("R. Strauss", "Richard Strauss"),
+    ("Sullivan", "Arthur Sullivan"),
     ("Tchaikovsky", "Pyotr Ilyich Tchaikovsky"),
+    ("Vivaldi", "Antonio Vivaldi"),
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -35,6 +45,7 @@ pub struct Composer {
 }
 
 impl Composer {
+    #[must_use]
     pub fn from_famous(s: &str) -> Option<Composer> {
         for (short, long) in FAMOUS_COMPOSERS {
             if s == short.trim() || s == long.trim() {

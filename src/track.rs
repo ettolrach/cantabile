@@ -7,14 +7,14 @@
 // cantabile is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
 // even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
 // General Public License for more details.
-//
+//  
 // You should have received a copy of the GNU General Public License along with cantabile. If not,
 // see <https://www.gnu.org/licenses/>.
 
-use crate::composers::{Composer, FAMOUS_COMPOSERS};
+use crate::composers::Composer;
 
 use std::{
-    collections::HashSet, convert::Infallible, io, path::{Path, PathBuf}, str::FromStr
+    collections::HashSet, io, path::{Path, PathBuf},
 };
 
 use audiotags::{Album, MimeType, Picture, Tag};
